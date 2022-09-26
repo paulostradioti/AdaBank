@@ -1,27 +1,41 @@
 using AdaBank.Domain;
 using AdaBank.Domain.Exceptions;
+using AdaBank.Domain.Repository;
+using Moq;
+using Range = Moq.Range;
 
 namespace AdaBank.UnitTests
 {
     public class BankAccountUnitTests
     {
+        private BankAccount _sut;
+        private readonly MockRepository _mockRepository;
+        private readonly Mock<IBankAccountRepository> _bankAccountRepositoryMock;
+
+        public BankAccountUnitTests()
+        {
+            _mockRepository = new MockRepository(MockBehavior.Strict);
+            
+            _bankAccountRepositoryMock = _mockRepository
+                .Create<IBankAccountRepository>();
+            _bankAccountRepositoryMock
+                .Setup(x => x.UpdateAccount(It.IsAny<BankAccount>()))
+                .Verifiable();
+
+            _sut = new BankAccount(_bankAccountRepositoryMock.Object);
+        }
+
         [Fact]
         public void Constructor_Initializes_ZeroBalance()
         {
-            //Arrange  & Act
-            var sut = new BankAccount(); // subject under test
-
             //Assert
-            Assert.Equal(Decimal.Zero, sut.Balance);
+            Assert.Equal(Decimal.Zero, _sut.Balance);
         }
 
         [Fact]
         public void Deposit_InvalidAmount_ShouldThrowInvalidAmountException()
         {
-            //Arrange
-            var sut = new BankAccount();
-
-            Action depositar = () => sut.Deposit(-1);
+            Action depositar = () => _sut.Deposit(-1);
 
             Assert.Throws<InvalidAmountArgumentException>(depositar);
         }
@@ -29,14 +43,13 @@ namespace AdaBank.UnitTests
         [Fact]
         public void Deposit_ValidAmount_ShouldUpdateBalance()
         {
-            //Arrange
-            var sut = new BankAccount();
-
             //Act
-            sut.Deposit(1000);
+            _sut.Deposit(1000);
 
             //Assert
-            Assert.Equal(1000, sut.Balance);
+            Assert.Equal(1000, _sut.Balance);
+            _bankAccountRepositoryMock
+                .Verify(x => x.UpdateAccount(It.IsAny<BankAccount>()), Times.Once);
         }
 
         [Theory]
@@ -44,11 +57,8 @@ namespace AdaBank.UnitTests
         [InlineData(-5)]
         public void Withdraw_InvalidAmount_ShouldThrowInvalidException(decimal amount)
         {
-            // Arrange
-            var sut = new BankAccount();
-
             //Act && Assert
-            Action saque = () => sut.Withdraw(amount);
+            Action saque = () => _sut.Withdraw(amount);
 
             Assert.Throws<InvalidAmountArgumentException>(saque);
         }
@@ -56,11 +66,8 @@ namespace AdaBank.UnitTests
         [Fact]
         public void Withdraw_NotEnoughBalance_ShouldThrowNotEnoughBalanceException()
         {
-            // Arrange
-            var sut = new BankAccount();
-
             //Act && Assert
-            Action saque = () => sut.Withdraw(5);
+            Action saque = () => _sut.Withdraw(5);
 
             Assert.Throws<NotEnoughBalanceException>(saque);
         }
@@ -70,14 +77,15 @@ namespace AdaBank.UnitTests
         public void Withdraw_ValidAmountWithEnoughBalance_ShouldUpdateBalance()
         {
             // Arrange
-            var sut = new BankAccount();
-            sut.Deposit(100);
+            _sut.Deposit(100);
 
             //Act
-            sut.Withdraw(5);
+            _sut.Withdraw(5);
 
             //Assert
-            Assert.Equal(95, sut.Balance);
+            Assert.Equal(95, _sut.Balance);
         }
+
+
     }
 }

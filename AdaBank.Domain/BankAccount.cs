@@ -1,14 +1,17 @@
 ﻿using AdaBank.Domain.Exceptions;
+using AdaBank.Domain.Repository;
 
 namespace AdaBank.Domain
 {
     public class BankAccount
     {
+        private readonly IBankAccountRepository _repository;
         public decimal Balance => balance;
         private decimal balance;
 
-        public BankAccount()
+        public BankAccount(IBankAccountRepository repository)
         {
+            _repository = repository;
             balance = Decimal.Zero;
         }
 
@@ -18,6 +21,7 @@ namespace AdaBank.Domain
                 throw new InvalidAmountArgumentException("O Valor informado não é válido.", nameof(amount));
 
             balance += amount;
+            _repository.UpdateAccount(this);
         }
 
         public void Withdraw(decimal amount)
@@ -29,6 +33,7 @@ namespace AdaBank.Domain
                 throw new NotEnoughBalanceException("Saldo Insuficiente.");
 
             balance -= amount;
+            _repository.UpdateAccount(this);
         }
     }
 }
